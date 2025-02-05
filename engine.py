@@ -1,6 +1,5 @@
 import pygame
 import random
-
 from entity import Entity
 from fov_functions import initialize_fov, recompute_fov
 from input_handlers import handle_keys
@@ -13,7 +12,6 @@ pygame.init()
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
-MONSTER_MOVE_DELAY = 500  # Время в миллисекундах (500 мс = 0.5 сек)
 
 
 def draw_health_bar(surface, x, y, current_hp, max_hp, width=100, height=10):
@@ -32,13 +30,20 @@ player_moved = False  # Флаг, который отслеживает движ
 
 
 def check_damage_to_player(player, enemies):
-    """Игрок получает урон только после первого движения"""
+    """Игрок получает урон при столкновении с врагами"""
+    global player_moved
     if not player_moved:
-        return False  # Не атакуем игрока, пока он не сделает первый шаг
+        return False  # Не атакуем игрока, пока он не сделал первый шаг
 
     for enemy in enemies:
-        if abs(player.x - enemy.x) <= 1 and abs(player.y - enemy.y) <= 1:
-            player.hp -= 10
+        if player.x == enemy.x and player.y == enemy.y:  # Столкновение
+            player.hp -= 20  # Урон при прямом столкновении
+            print(f"Игрок получил урон из-за столкновения! HP: {player.hp}")
+            if player.hp <= 0:
+                print("Игрок погиб!")
+                return True
+        elif abs(player.x - enemy.x) <= 1 and abs(player.y - enemy.y) <= 1:  # Близость
+            player.hp -= 10  # Меньший урон при близости
             print(f"Игрок получил урон! HP: {player.hp}")
             if player.hp <= 0:
                 print("Игрок погиб!")
@@ -50,31 +55,16 @@ def spawn_enemies(game_map, rooms, num_enemies, player):
     """Создаёт врагов только в комнатах, избегая позиции игрока"""
     enemies = []
     potential_positions = []
-
     for room in rooms:
         for x in range(room.x1 + 1, room.x2):
             for y in range(room.y1 + 1, room.y2):
                 if not game_map.is_blocked(x, y) and (abs(player.x - x) > 2 or abs(player.y - y) > 2):
                     potential_positions.append((x, y))
-
     random.shuffle(potential_positions)
     for i in range(min(num_enemies, len(potential_positions))):
         x, y = potential_positions[i]
         enemies.append(Entity(x, y, "enemy", is_enemy=True))
-
     return enemies
-
-
-def move_enemy(enemy, room, game_map, enemies):
-    move_x, move_y = random.choice([(0, 1), (0, -1), (1, 0), (-1, 0)])
-    new_x = enemy.x + move_x
-    new_y = enemy.y + move_y
-
-    if room.x1 < new_x < room.x2 and room.y1 < new_y < room.y2:
-        if not game_map.is_blocked(new_x, new_y) and not is_occupied(new_x, new_y, enemies):
-            enemy.move(move_x, move_y)
-            print(f"Монстр {enemy} переместился на ({enemy.x}, {enemy.y})")
-
 
 
 def main():
@@ -82,7 +72,7 @@ def main():
     map_width, map_height = 80, 45
     size = (util.to_pixel(screen_width), util.to_pixel(screen_height))
     window = pygame.display.set_mode(size)
-    pygame.display.set_caption("roguelike pygame tutorial")
+    pygame.display.set_caption("Roguelike Pygame Tutorial")
 
     colors = {
         "dark_wall": Entity(0, 0, "dark_wall"),
@@ -98,17 +88,17 @@ def main():
     game_map = GameMap(map_width, map_height)
     rooms = game_map.make_map(30, 6, 10, map_width, map_height, player)
 
-    # Теперь монстры будут появляться только в комнатах
+    # Создание врагов
     enemies = spawn_enemies(game_map, rooms, 20, player)
-
     entities = [player] + enemies
+
     fov_map = initialize_fov(game_map)
-    last_monster_move = pygame.time.get_ticks()
 
+    # Инициализация флага player_moved
+    player_moved = False  # Игрок еще не двигался
     running = True
-    while running:
-        current_time = pygame.time.get_ticks()
 
+    while running:
         for event in pygame.event.get():
             action = handle_keys(event)
             if action.get("exit"):
@@ -118,25 +108,21 @@ def main():
                 new_x = player.x + move_x
                 new_y = player.y + move_y
 
+                # Проверка блокировки клетки и столкновения с врагами
                 if not game_map.is_blocked(new_x, new_y) and not is_occupied(new_x, new_y, enemies):
                     player.move(move_x, move_y)
                     fov_map = recompute_fov(game_map, player.x, player.y, 10, True)
-                    player_moved = True  # Теперь игрок может получать урон
+                    player_moved = True  # Игрок сделал шаг
 
-        if current_time - last_monster_move >= MONSTER_MOVE_DELAY:
-            for enemy, room in zip(enemies, rooms):
-                move_enemy(enemy, room, game_map, enemies)
+        # Проверка урона игроку
+        if check_damage_to_player(player, enemies):  # Вызываем функцию проверки урона
+            running = False  # Завершаем игру, если игрок погиб
 
-            last_monster_move = current_time
-
-        if check_damage_to_player(player, enemies):
-            running = False
-
+        # Отрисовка
         window.fill(BLACK)
         render_all(window, entities, game_map, fov_map, colors)
-        draw_health_bar(window, 10, 10, player.hp, player.max_hp)
+        draw_health_bar(window, 10, 10, player.hp, player.max_hp)  # Обновляем полоску здоровья
         pygame.display.update()
-        print(f"Текущее время: {current_time}, Последнее движение монстров: {last_monster_move}")
 
     pygame.quit()
 
