@@ -1,10 +1,12 @@
 import pygame
 import random
+import sys
 from entity import Entity
 from fov_functions import initialize_fov, recompute_fov
 from input_handlers import handle_keys
 from map_objects.game_map import GameMap
 from render_functions import render_all
+from start_screen import show_start_screen
 import util
 
 pygame.init()
@@ -83,6 +85,10 @@ def main():
     window = pygame.display.set_mode(size)
     pygame.display.set_caption("Roguelike Pygame Tutorial")
 
+    if not show_start_screen(window):  # Если игрок выбрал "Выйти", завершаем программу
+        pygame.quit()
+        sys.exit()
+
     colors = {
         "dark_wall": Entity(0, 0, "dark_wall"),
         "dark_ground": Entity(0, 0, "dark_ground"),
@@ -101,12 +107,11 @@ def main():
     enemies = spawn_enemies(game_map, rooms, 20, player)
     entities = [player] + enemies
     stair = place_stair(rooms, player)
-    entities.append(stair)  # Добавляем в список сущностей для рендера
+    entities.append(stair)  # Добавляем лестницу в список сущностей
 
     fov_map = initialize_fov(game_map)
 
-    # Инициализация флага player_moved
-    player_moved = False  # Игрок еще не двигался
+    player_moved = False
     running = True
 
     while running:
@@ -119,35 +124,30 @@ def main():
                 new_x = player.x + move_x
                 new_y = player.y + move_y
 
-                # Проверяем, является ли новая клетка стеной
                 if game_map.is_blocked(new_x, new_y):
-                    continue  # Не двигаемся, если клетка является стеной
+                    continue
 
-                # Проверяем, занята ли клетка монстром
                 if is_occupied(new_x, new_y, enemies):
-                    # Наносим урон игроку за попытку зайти на монстра
                     if check_damage_to_player(player, enemies):
-                        running = False  # Завершаем игру, если игрок погиб
-                    continue  # Отменяем движение
+                        running = False
+                    continue
 
                 if player.x == stair.x and player.y == stair.y:
                     print("Игрок перешёл на новый уровень!")
                     game_map = GameMap(map_width, map_height)
                     rooms = game_map.make_map(30, 6, 10, map_width, map_height, player)
                     enemies = spawn_enemies(game_map, rooms, 20, player)
-                    stair = place_stair(rooms, player)  # Создаём новую лестницу
+                    stair = place_stair(rooms, player)
                     entities = [player] + enemies + [stair]
                     fov_map = initialize_fov(game_map)
 
-                # Если клетка свободна, выполняем движение
                 player.move(move_x, move_y)
                 fov_map = recompute_fov(game_map, player.x, player.y, 10, True)
-                player_moved = True  # Игрок сделал шаг
+                player_moved = True
 
-        # Отрисовка
         window.fill(BLACK)
         render_all(window, entities, game_map, fov_map, colors, stair)
-        draw_health_bar(window, 10, 10, player.hp, player.max_hp)  # Обновляем полоску здоровья
+        draw_health_bar(window, 10, 10, player.hp, player.max_hp)
         pygame.display.update()
 
     pygame.quit()

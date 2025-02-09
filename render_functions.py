@@ -19,7 +19,7 @@ def render_all(screen, entities, game_map, fov_map, colors, stair):
             screen.blit(color, (util.to_pixel(x), util.to_pixel(y)))
 
     # Отрисовываем клетку перехода
-    draw_entity(screen, stair, fov_map)
+    draw_entity(screen, stair, fov_map, bypass_fov=True)
 
     # Отрисовываем все сущности
     for entity in entities:
