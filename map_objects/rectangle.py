@@ -6,20 +6,15 @@ class Rect:
         self.y2 = y + h
 
     def center(self):
-        """Возвращает координаты центра прямоугольника"""
         center_x = int((self.x1 + self.x2) / 2)
         center_y = int((self.y1 + self.y2) / 2)
         return (center_x, center_y)
 
-    def intersect(self, other):
-        """Проверяет, пересекаются ли два прямоугольника"""
+    def __contains__(self, other):
+        # return true if any part of the other rect is within this rect
         return (
-            self.x1 <= other.x2 and
-            self.x2 >= other.x1 and
-            self.y1 <= other.y2 and
-            self.y2 >= other.y1
+            self.x1 <= other.x2
+            and self.x2 >= other.x1
+            and self.y1 <= other.y2
+            and self.y2 >= other.y1
         )
-
-    def contains(self, x, y):
-        """Проверяет, находится ли точка (x, y) внутри прямоугольника"""
-        return self.x1 <= x < self.x2 and self.y1 <= y < self.y2

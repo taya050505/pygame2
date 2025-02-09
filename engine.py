@@ -30,21 +30,17 @@ player_moved = False  # Флаг, который отслеживает движ
 
 
 def check_damage_to_player(player, enemies):
-    """Игрок получает урон при столкновении с врагами"""
-    global player_moved
-    if not player_moved:
-        return False  # Не атакуем игрока, пока он не сделал первый шаг
-
+    """Проверяет, есть ли столкновение игрока с врагами, и наносит урон"""
     for enemy in enemies:
         if player.x == enemy.x and player.y == enemy.y:  # Столкновение
-            player.hp -= 20  # Урон при прямом столкновении
-            print(f"Игрок получил урон из-за столкновения! HP: {player.hp}")
+            player.hp -= 20
+            print(f"Игрок получил урон при столкновении! HP: {player.hp}")
             if player.hp <= 0:
                 print("Игрок погиб!")
                 return True
-        elif abs(player.x - enemy.x) <= 1 and abs(player.y - enemy.y) <= 1:  # Близость
-            player.hp -= 10  # Меньший урон при близости
-            print(f"Игрок получил урон! HP: {player.hp}")
+        elif abs(player.x - enemy.x) <= 1 and abs(player.y - enemy.y) <= 1:  # Монстр рядом
+            player.hp -= 10
+            print(f"Игрок получил урон от близкого врага! HP: {player.hp}")
             if player.hp <= 0:
                 print("Игрок погиб!")
                 return True
@@ -52,19 +48,32 @@ def check_damage_to_player(player, enemies):
 
 
 def spawn_enemies(game_map, rooms, num_enemies, player):
-    """Создаёт врагов только в комнатах, избегая позиции игрока"""
+    """Создаёт врагов только в комнатах, избегая стартовой комнаты игрока"""
     enemies = []
     potential_positions = []
-    for room in rooms:
+
+    start_room = rooms[0]  # Первая комната — это комната игрока
+
+    for room in rooms[1:]:  # Пропускаем стартовую комнату
         for x in range(room.x1 + 1, room.x2):
             for y in range(room.y1 + 1, room.y2):
-                if not game_map.is_blocked(x, y) and (abs(player.x - x) > 2 or abs(player.y - y) > 2):
+                if not game_map.is_blocked(x, y):
                     potential_positions.append((x, y))
+
     random.shuffle(potential_positions)
     for i in range(min(num_enemies, len(potential_positions))):
         x, y = potential_positions[i]
         enemies.append(Entity(x, y, "enemy", is_enemy=True))
+
     return enemies
+
+
+def place_stair(rooms, player):
+    """Создаёт клетку перехода в случайной комнате (кроме стартовой)"""
+    possible_rooms = rooms[1:]  # Исключаем стартовую комнату
+    chosen_room = random.choice(possible_rooms)  # Выбираем случайную комнату
+    stair_x, stair_y = chosen_room.center()  # Клетка в центре комнаты
+    return Entity(stair_x, stair_y, "stair")  # Создаём клетку перехода
 
 
 def main():
@@ -91,6 +100,8 @@ def main():
     # Создание врагов
     enemies = spawn_enemies(game_map, rooms, 20, player)
     entities = [player] + enemies
+    stair = place_stair(rooms, player)
+    entities.append(stair)  # Добавляем в список сущностей для рендера
 
     fov_map = initialize_fov(game_map)
 
@@ -108,19 +119,34 @@ def main():
                 new_x = player.x + move_x
                 new_y = player.y + move_y
 
-                # Проверка блокировки клетки и столкновения с врагами
-                if not game_map.is_blocked(new_x, new_y) and not is_occupied(new_x, new_y, enemies):
-                    player.move(move_x, move_y)
-                    fov_map = recompute_fov(game_map, player.x, player.y, 10, True)
-                    player_moved = True  # Игрок сделал шаг
+                # Проверяем, является ли новая клетка стеной
+                if game_map.is_blocked(new_x, new_y):
+                    continue  # Не двигаемся, если клетка является стеной
 
-        # Проверка урона игроку
-        if check_damage_to_player(player, enemies):  # Вызываем функцию проверки урона
-            running = False  # Завершаем игру, если игрок погиб
+                # Проверяем, занята ли клетка монстром
+                if is_occupied(new_x, new_y, enemies):
+                    # Наносим урон игроку за попытку зайти на монстра
+                    if check_damage_to_player(player, enemies):
+                        running = False  # Завершаем игру, если игрок погиб
+                    continue  # Отменяем движение
+
+                if player.x == stair.x and player.y == stair.y:
+                    print("Игрок перешёл на новый уровень!")
+                    game_map = GameMap(map_width, map_height)
+                    rooms = game_map.make_map(30, 6, 10, map_width, map_height, player)
+                    enemies = spawn_enemies(game_map, rooms, 20, player)
+                    stair = place_stair(rooms, player)  # Создаём новую лестницу
+                    entities = [player] + enemies + [stair]
+                    fov_map = initialize_fov(game_map)
+
+                # Если клетка свободна, выполняем движение
+                player.move(move_x, move_y)
+                fov_map = recompute_fov(game_map, player.x, player.y, 10, True)
+                player_moved = True  # Игрок сделал шаг
 
         # Отрисовка
         window.fill(BLACK)
-        render_all(window, entities, game_map, fov_map, colors)
+        render_all(window, entities, game_map, fov_map, colors, stair)
         draw_health_bar(window, 10, 10, player.hp, player.max_hp)  # Обновляем полоску здоровья
         pygame.display.update()
 
