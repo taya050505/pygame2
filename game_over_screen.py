@@ -1,6 +1,7 @@
 import pygame
 import sys
 
+
 class Button:
     def __init__(self, text, x, y, width, height, inactive_color, active_color, action=None):
         self.text = text
@@ -33,40 +34,35 @@ class Button:
                 return True  # Возвращаем True, если кнопка была нажата
         return False
 
-# Функция для отрисовки текста
-def draw_text(surface, text, font, color, x, y):
-    text_surface = font.render(text, True, color)
-    text_rect = text_surface.get_rect()
-    text_rect.center = (x, y)
-    surface.blit(text_surface, text_rect)
 
-def show_start_screen(window):
+def show_game_over_screen(window):
     SCREEN_WIDTH, SCREEN_HEIGHT = window.get_size()
     clock = pygame.time.Clock()
 
-    WHITE = (255, 255, 255)
+    # Цвета
+    RED = (255, 0, 0)
     BLACK = (0, 0, 0)
     GRAY = (147, 112, 216)  # Темно-фиолетовый для активной кнопки
-    PURPLE = (75, 0, 130)   # Фиолетовый для неактивной кнопки
+    PURPLE = (75, 0, 130)  # Фиолетовый для неактивной кнопки
 
-    # Шрифт для кнопок и заголовка
-    button_font = pygame.font.Font(None, 74)
-    title_font = pygame.font.Font(None, 96)  # Более крупный шрифт для названия игры
+    # Шрифты
+    title_font = pygame.font.Font(None, 96)  # Для заголовка "Game Over"
+    button_font = pygame.font.Font(None, 74)  # Для кнопок
 
     # Создание кнопок
-    play_button = Button("Играть", SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2 - 50, 400, 100, PURPLE, GRAY)
-    quit_button = Button("Выйти", SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2 + 100, 400, 100, PURPLE, GRAY,
+    restart_button = Button("Начать заново", SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2, 400, 100, PURPLE, GRAY)
+    quit_button = Button("Выйти", SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2 + 150, 400, 100, PURPLE, GRAY,
                          lambda: pygame.quit())
 
     in_menu = True
     while in_menu:
         window.fill(BLACK)
 
-        # Отрисовка названия игры
-        draw_text(window, "Roguelike Game", title_font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
+        # Отрисовка текста "Game Over"
+        draw_text(window, "Game Over", title_font, RED, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
 
         # Отрисовка кнопок
-        play_button.draw(window, button_font)
+        restart_button.draw(window, button_font)
         quit_button.draw(window, button_font)
 
         for event in pygame.event.get():
@@ -77,8 +73,16 @@ def show_start_screen(window):
                 if quit_button.is_clicked(event):
                     pygame.quit()
                     sys.exit()
-                if play_button.is_clicked(event):
-                    return True  # Игрок выбрал "Играть"
+                if restart_button.is_clicked(event):
+                    return True  # Возвращаем True, если игрок выбрал "Начать заново"
 
         pygame.display.flip()
         clock.tick(30)
+
+
+# Функция для отрисовки текста
+def draw_text(surface, text, font, color, x, y):
+    text_surface = font.render(text, True, color)
+    text_rect = text_surface.get_rect()
+    text_rect.center = (x, y)
+    surface.blit(text_surface, text_rect)
