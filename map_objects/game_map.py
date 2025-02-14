@@ -44,7 +44,7 @@ class GameMap:
 
                 rooms.append(new_room)
 
-        return rooms  # Теперь мы возвращаем список комнат
+        return rooms
 
     def create_room(self, rect):
         # go through the tiles in the rect and make them passable

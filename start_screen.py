@@ -1,6 +1,7 @@
 import pygame
 import sys
 
+
 class Button:
     def __init__(self, text, x, y, width, height, inactive_color, active_color, action=None):
         self.text = text
@@ -33,12 +34,13 @@ class Button:
                 return True  # Возвращаем True, если кнопка была нажата
         return False
 
-# Функция для отрисовки текста
+
 def draw_text(surface, text, font, color, x, y):
     text_surface = font.render(text, True, color)
     text_rect = text_surface.get_rect()
     text_rect.center = (x, y)
     surface.blit(text_surface, text_rect)
+
 
 def show_start_screen(window):
     SCREEN_WIDTH, SCREEN_HEIGHT = window.get_size()
@@ -46,14 +48,12 @@ def show_start_screen(window):
 
     WHITE = (255, 255, 255)
     BLACK = (0, 0, 0)
-    GRAY = (147, 112, 216)  # Темно-фиолетовый для активной кнопки
-    PURPLE = (75, 0, 130)   # Фиолетовый для неактивной кнопки
+    GRAY = (147, 112, 216)
+    PURPLE = (75, 0, 130)
 
-    # Шрифт для кнопок и заголовка
     button_font = pygame.font.Font(None, 74)
-    title_font = pygame.font.Font(None, 96)  # Более крупный шрифт для названия игры
+    title_font = pygame.font.Font(None, 96)
 
-    # Создание кнопок
     play_button = Button("Играть", SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2 - 50, 400, 100, PURPLE, GRAY)
     quit_button = Button("Выйти", SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2 + 100, 400, 100, PURPLE, GRAY,
                          lambda: pygame.quit())
@@ -62,10 +62,8 @@ def show_start_screen(window):
     while in_menu:
         window.fill(BLACK)
 
-        # Отрисовка названия игры
-        draw_text(window, "Roguelike Game", title_font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
+        draw_text(window, "Лабиринт вечной ночи", title_font, WHITE, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
 
-        # Отрисовка кнопок
         play_button.draw(window, button_font)
         quit_button.draw(window, button_font)
 

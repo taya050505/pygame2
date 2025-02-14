@@ -19,3 +19,12 @@ class Entity:
     def move(self, dx, dy):
         self.x += dx
         self.y += dy
+
+
+class Potion(Entity):
+    potion_image = pygame.image.load("res/potion.png")  # Путь к изображению
+
+    def __init__(self, x, y, effect):
+        super().__init__(x, y, "potion")
+        self.effect = effect  # "heal" или "harm"
+        self.surface = Potion.potion_image  # Устанавливаем картинку
