@@ -44,7 +44,7 @@ def check_damage_to_player(player, enemies, window):
     return False
 
 
-def spawn_enemies(game_map, rooms, num_enemies, occupied_positions):
+def spawn_enemies(game_map, rooms, num_enemies, player, occupied_positions):
     enemies = []
     potential_positions = []
 
@@ -146,6 +146,10 @@ def main():
         game_running = True
         while game_running:
             for event in pygame.event.get():
+                if event.type == pygame.QUIT:  # Обработка закрытия окна
+                    running = False
+                    game_running = False
+                    break
                 action = handle_keys(event)
                 if action.get("exit"):
                     game_running = False
@@ -156,19 +160,22 @@ def main():
 
                     if game_map.is_blocked(new_x, new_y):
                         continue
+
                     if is_occupied(new_x, new_y, enemies):
                         if check_damage_to_player(player, enemies, window):
                             game_running = False
-                            if not show_game_over_screen(window):
+                            restart_game = show_game_over_screen(window)
+                            if not restart_game:  # Если нет, завершаем игру
                                 running = False
                             break
                         continue
+
                     if player.x == stair.x and player.y == stair.y:
                         print("Игрок перешёл на новый уровень!")
                         game_map = GameMap(map_width, map_height)
                         rooms = game_map.make_map(30, 6, 10, map_width, map_height, player)
-                        enemies = spawn_enemies(game_map, rooms, 20, player)
-                        stair = place_stair(rooms, player)
+                        enemies = spawn_enemies(game_map, rooms, 20, player, occupied_positions)
+                        stair = place_stair(rooms, occupied_positions)
                         entities = [player] + enemies + [stair]
                         fov_map = initialize_fov(game_map)
                     for potion in potions[:]:
@@ -176,15 +183,18 @@ def main():
                             potions.remove(potion)
                             entities.remove(potion)
                             if potion.effect == "heal":
-                                player.hp = min(player.max_hp, player.hp + 30)
+                                player.hp = min(player.max_hp, player.hp + random.choice([10, 20, 30, 40]))
                                 print("Вы выпили лечебное зелье! +30 HP")
                             else:
-                                player.hp -= random.randint({10, 20, 30, 40})
+                                player.hp -= random.choice([10, 20, 30, 40])
                                 print("Вы выпили проклятое зелье! -20 HP")
                             break
 
                     player.move(move_x, move_y)
                     fov_map = recompute_fov(game_map, player.x, player.y, 10, True)
+
+            if not game_running:
+                break
 
             window.fill(BLACK)
             render_all(window, entities, game_map, fov_map, colors, stair)
@@ -192,8 +202,6 @@ def main():
             pygame.display.update()
 
         if not running:
-            break
-        if not game_running:
             break
 
     pygame.quit()
